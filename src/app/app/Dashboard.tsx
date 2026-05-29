@@ -138,14 +138,9 @@ export default function Dashboard({ initialJobs }: { initialJobs: Job[] }) {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <div className="flex items-baseline justify-between gap-2">
-              <label htmlFor="shopifyToken" className="text-sm font-medium text-[#475569]">
-                Token de acceso de Shopify
-              </label>
-              <a href="/ayuda" className="text-xs text-[#2563eb] hover:underline">
-                ¿Cómo consigo el token?
-              </a>
-            </div>
+            <label htmlFor="shopifyToken" className="text-sm font-medium text-[#475569]">
+              Token de acceso de Shopify
+            </label>
             <input
               id="shopifyToken"
               type="password"
@@ -154,6 +149,14 @@ export default function Dashboard({ initialJobs }: { initialJobs: Job[] }) {
               {...register("shopifyToken")}
               className="rounded-md border border-[#cbd5e1] bg-white px-3 py-2 text-sm outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/20"
             />
+            <a
+              href="/ayuda"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-medium text-[#2563eb] hover:underline"
+            >
+              ¿Cómo consigo el token? →
+            </a>
             {errors.shopifyToken && (
               <p className="text-xs text-red-600">{errors.shopifyToken.message}</p>
             )}
