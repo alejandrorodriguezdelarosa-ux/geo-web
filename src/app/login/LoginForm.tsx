@@ -45,7 +45,7 @@ export default function LoginForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="email" className="text-sm font-medium text-stone-700">
+        <label htmlFor="email" className="text-sm font-medium text-[#475569]">
           Email
         </label>
         <input
@@ -53,7 +53,7 @@ export default function LoginForm() {
           type="email"
           autoComplete="email"
           {...register("email")}
-          className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-orange-700 focus:ring-2 focus:ring-orange-700/20"
+          className="rounded-md border border-[#cbd5e1] bg-white px-3 py-2 text-sm outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/20"
         />
         {errors.email && (
           <p className="text-xs text-red-600">{errors.email.message}</p>
@@ -61,7 +61,7 @@ export default function LoginForm() {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="password" className="text-sm font-medium text-stone-700">
+        <label htmlFor="password" className="text-sm font-medium text-[#475569]">
           Contraseña
         </label>
         <input
@@ -69,7 +69,7 @@ export default function LoginForm() {
           type="password"
           autoComplete="current-password"
           {...register("password")}
-          className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-orange-700 focus:ring-2 focus:ring-orange-700/20"
+          className="rounded-md border border-[#cbd5e1] bg-white px-3 py-2 text-sm outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/20"
         />
         {errors.password && (
           <p className="text-xs text-red-600">{errors.password.message}</p>
@@ -85,14 +85,14 @@ export default function LoginForm() {
       <button
         type="submit"
         disabled={isSubmitting}
-        className="rounded-md bg-orange-700 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-800 disabled:opacity-60"
+        className="rounded-md bg-[#2563eb] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1d4ed8] disabled:opacity-60"
       >
         {isSubmitting ? "Entrando…" : "Entrar"}
       </button>
 
-      <p className="text-center text-sm text-stone-500">
+      <p className="text-center text-sm text-[#64748b]">
         ¿No tienes cuenta?{" "}
-        <Link href="/register" className="font-medium text-orange-700 hover:underline">
+        <Link href="/register" className="font-medium text-[#2563eb] hover:underline">
           Regístrate
         </Link>
       </p>

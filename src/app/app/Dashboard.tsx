@@ -116,13 +116,13 @@ export default function Dashboard({ initialJobs }: { initialJobs: Job[] }) {
   return (
     <div className="flex flex-col gap-8">
       {/* New job form */}
-      <section className="rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-5 text-lg font-semibold tracking-tight text-stone-900">
+      <section className="rounded-xl border border-[#e2e8f0] bg-white p-6 shadow-sm">
+        <h2 className="mb-5 text-lg font-semibold tracking-tight text-[#0f172a]">
           Nuevo análisis
         </h2>
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="storeDomain" className="text-sm font-medium text-stone-700">
+            <label htmlFor="storeDomain" className="text-sm font-medium text-[#475569]">
               Dominio de la tienda
             </label>
             <input
@@ -130,7 +130,7 @@ export default function Dashboard({ initialJobs }: { initialJobs: Job[] }) {
               type="text"
               placeholder="mi-tienda.myshopify.com"
               {...register("storeDomain")}
-              className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-orange-700 focus:ring-2 focus:ring-orange-700/20"
+              className="rounded-md border border-[#cbd5e1] bg-white px-3 py-2 text-sm outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/20"
             />
             {errors.storeDomain && (
               <p className="text-xs text-red-600">{errors.storeDomain.message}</p>
@@ -138,7 +138,7 @@ export default function Dashboard({ initialJobs }: { initialJobs: Job[] }) {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="shopifyToken" className="text-sm font-medium text-stone-700">
+            <label htmlFor="shopifyToken" className="text-sm font-medium text-[#475569]">
               Token de acceso de Shopify
             </label>
             <input
@@ -147,7 +147,7 @@ export default function Dashboard({ initialJobs }: { initialJobs: Job[] }) {
               placeholder="shpat_…"
               autoComplete="off"
               {...register("shopifyToken")}
-              className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-orange-700 focus:ring-2 focus:ring-orange-700/20"
+              className="rounded-md border border-[#cbd5e1] bg-white px-3 py-2 text-sm outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/20"
             />
             {errors.shopifyToken && (
               <p className="text-xs text-red-600">{errors.shopifyToken.message}</p>
@@ -169,7 +169,7 @@ export default function Dashboard({ initialJobs }: { initialJobs: Job[] }) {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="self-start rounded-md bg-orange-700 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-800 disabled:opacity-60"
+            className="self-start rounded-md bg-[#2563eb] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1d4ed8] disabled:opacity-60"
           >
             {isSubmitting ? "Lanzando…" : "Lanzar análisis"}
           </button>
@@ -178,12 +178,12 @@ export default function Dashboard({ initialJobs }: { initialJobs: Job[] }) {
 
       {/* Job list */}
       <section>
-        <h2 className="mb-4 text-lg font-semibold tracking-tight text-stone-900">
+        <h2 className="mb-4 text-lg font-semibold tracking-tight text-[#0f172a]">
           Historial de análisis
         </h2>
 
         {jobs.length === 0 ? (
-          <p className="text-sm text-stone-500">
+          <p className="text-sm text-[#64748b]">
             Aún no has lanzado ningún análisis.
           </p>
         ) : (
@@ -191,14 +191,14 @@ export default function Dashboard({ initialJobs }: { initialJobs: Job[] }) {
             {jobs.map((job) => (
               <div
                 key={job.id}
-                className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm"
+                className="rounded-xl border border-[#e2e8f0] bg-white p-4 shadow-sm"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex flex-col gap-1">
-                    <span className="text-sm font-medium text-stone-900">
+                    <span className="text-sm font-medium text-[#0f172a]">
                       {job.storeDomain}
                     </span>
-                    <span className="text-xs text-stone-400">
+                    <span className="text-xs text-[#94a3b8]">
                       {formatDate(job.startedAt)}
                       {job.finishedAt && ` — ${formatDate(job.finishedAt)}`}
                     </span>
@@ -211,7 +211,7 @@ export default function Dashboard({ initialJobs }: { initialJobs: Job[] }) {
                 </div>
 
                 {job.status === "succeeded" && job.summary && (
-                  <p className="mt-3 whitespace-pre-wrap text-sm text-stone-700">
+                  <p className="mt-3 whitespace-pre-wrap text-sm text-[#475569]">
                     {job.summary}
                   </p>
                 )}
