@@ -15,6 +15,19 @@ texto principal `#0f172a`, secundario `#475569`, muted `#64748b`, bordes `#e2e8f
 bordes input `#cbd5e1`. Paleta idéntica al TFM OptimoIA. Sin dark mode. Sin Fraunces,
 Inter Tight ni JetBrains Mono.
 
+## Página /ayuda
+
+Página pública estática (`src/app/ayuda/page.tsx`). Tutorial de 6 pasos para crear
+una Custom App en Shopify y obtener el `shpat_` token. Scopes documentados (extraídos
+de `n8n/HTML_ENRICH_v3.json`):
+- `read_products` — productos, custom_collections, smart_collections
+- `read_content` — pages, blogs, articles
+- `read_themes` — leer temas y assets
+- `write_themes` — subir snippets Liquid
+- `write_metafields` — guardar Schema.org en metafields
+
+Enlazada desde: dashboard (junto al campo token) y footer de la landing.
+
 ## Tareas de la Fase 1 y estado
 
 - **T5** ✅ HECHA — `POST /api/jobs` verificado E2E 4/4: 401 sin auth, 400 token inválido,
