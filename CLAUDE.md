@@ -7,6 +7,14 @@
   verificó, registrar cualquier decisión nueva o desvío del plan, y reflejar cambios en el
   contrato de API o el modelo de datos. No esperar a que el usuario lo pida.
 
+## Sistema de diseño
+
+**Aplicado en commit `70f2c8d`:** Inter única fuente (400–800 via `next/font/google`),
+acento `#2563eb` (hover `#1d4ed8`), fondo página `#f8fafc`, tarjetas/header `#ffffff`,
+texto principal `#0f172a`, secundario `#475569`, muted `#64748b`, bordes `#e2e8f0`,
+bordes input `#cbd5e1`. Paleta idéntica al TFM OptimoIA. Sin dark mode. Sin Fraunces,
+Inter Tight ni JetBrains Mono.
+
 ## Tareas de la Fase 1 y estado
 
 - **T5** ✅ HECHA — `POST /api/jobs` verificado E2E 4/4: 401 sin auth, 400 token inválido,
