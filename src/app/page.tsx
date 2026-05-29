@@ -102,7 +102,12 @@ export default async function Home() {
       <footer className="border-t border-[#e2e8f0] px-4 py-8">
         <div className="mx-auto max-w-3xl flex items-center justify-between text-xs text-[#64748b]">
           <span className="font-medium">Geo Web</span>
-          <span>Proyecto de portafolio — no comercial</span>
+          <div className="flex items-center gap-4">
+            <Link href="/ayuda" className="hover:text-[#2563eb] hover:underline">
+              Cómo obtener el token
+            </Link>
+            <span>Proyecto de portafolio — no comercial</span>
+          </div>
         </div>
       </footer>
     </div>

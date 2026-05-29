@@ -138,9 +138,14 @@ export default function Dashboard({ initialJobs }: { initialJobs: Job[] }) {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="shopifyToken" className="text-sm font-medium text-[#475569]">
-              Token de acceso de Shopify
-            </label>
+            <div className="flex items-baseline justify-between gap-2">
+              <label htmlFor="shopifyToken" className="text-sm font-medium text-[#475569]">
+                Token de acceso de Shopify
+              </label>
+              <a href="/ayuda" className="text-xs text-[#2563eb] hover:underline">
+                ¿Cómo consigo el token?
+              </a>
+            </div>
             <input
               id="shopifyToken"
               type="password"
