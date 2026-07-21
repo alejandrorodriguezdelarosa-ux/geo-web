@@ -1,6 +1,8 @@
 "use client"
 
 import { useState } from "react"
+import GeoReport, { type GeoAudit } from "./GeoReport"
+import Link from "next/link"
 
 type QuestionsResult = {
   questions: { question: string; prob: number }[]
@@ -60,12 +62,16 @@ export default function AuditorTool() {
   const [compLoading, setCompLoading] = useState(false)
   const [compError, setCompError] = useState<string | null>(null)
   const [comp, setComp] = useState<CompetitorResult | null>(null)
+  const [geoLoading, setGeoLoading] = useState(false)
+  const [geoError, setGeoError] = useState<string | null>(null)
+  const [geo, setGeo] = useState<GeoAudit | null>(null)
 
   async function analyze() {
     setError(null)
     setResult(null)
     setComp(null)
     setCompError(null)
+    setGeo(null)
     setLoading(true)
 
     try {
@@ -124,12 +130,46 @@ export default function AuditorTool() {
     }
   }
 
+  async function geoAudit() {
+    setGeoError(null)
+    setGeo(null)
+    setGeoLoading(true)
+    try {
+      const res = await fetch("/api/auditor/geo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode,
+          text: mode === "text" ? text : undefined,
+          url: mode === "url" ? url : undefined,
+          title: title || undefined,
+          niche: niche || undefined,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setGeoError(data.error || "Error al generar el informe"); return }
+      setGeo(data as GeoAudit)
+    } catch {
+      setGeoError("Error de conexión")
+    } finally {
+      setGeoLoading(false)
+    }
+  }
+
   const canAnalyze =
     !loading &&
+    !error &&
     ((mode === "text" && text.length >= 50) || (mode === "url" && url.length > 0))
 
   return (
     <div className="flex flex-col gap-8">
+      <Link
+        href="/app"
+        className="text-sm font-medium text-[#EC1E63] hover:underline"
+      >
+        ← Volver al dashboard
+      </Link>
+
       <section className="rounded-xl border border-[#e2e8f0] bg-white p-6 shadow-sm">
         <h2 className="mb-1 text-lg font-semibold tracking-tight text-[#0f172a]">
           Auditor GEO
@@ -364,7 +404,7 @@ export default function AuditorTool() {
                   Superas al
                 </p>
                 <p className="mt-1 text-2xl font-bold text-[#0f172a]">
-                  {Math.round(comp.user_percentile)}%
+                  {Math.round(comp.user_percentile * 100)}%
                 </p>
               </div>
             )}
@@ -436,6 +476,23 @@ export default function AuditorTool() {
           {compError}
         </p>
       )}
+
+      <section className="flex flex-col gap-4">
+        <div>
+          <button
+            type="button"
+            onClick={geoAudit}
+            disabled={geoLoading || (mode === "text" ? text.length < 50 : url.length === 0)}
+            className="rounded-md bg-[#0f172a] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1e293b] disabled:opacity-60"
+          >
+            {geoLoading ? "Generando informe GEO…" : "Generar Informe GEO"}
+          </button>
+        </div>
+        {geoError && (
+          <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{geoError}</p>
+        )}
+        {geo && <GeoReport data={geo} />}
+      </section>
     </div>
   )
 }
