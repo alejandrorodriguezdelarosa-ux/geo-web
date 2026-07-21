@@ -139,6 +139,12 @@ export default function Dashboard({ initialJobs }: { initialJobs: Job[] }) {
         >
           Shopify OAuth →
         </Link>
+        <Link
+          href="/app/auditor"
+          className="rounded-full border border-[#e2e8f0] bg-white px-3 py-1 text-xs font-medium text-[#475569] hover:border-[#EC1E63] hover:text-[#EC1E63]"
+        >
+          Auditor GEO →
+        </Link>
       </nav>
 
       {/* New job form */}
