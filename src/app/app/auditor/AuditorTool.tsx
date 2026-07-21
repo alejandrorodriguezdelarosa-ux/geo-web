@@ -127,7 +127,6 @@ export default function AuditorTool() {
 
   const canAnalyze =
     !loading &&
-    !error &&
     ((mode === "text" && text.length >= 50) || (mode === "url" && url.length > 0))
 
   return (
@@ -373,7 +372,7 @@ export default function AuditorTool() {
                   Superas al
                 </p>
                 <p className="mt-1 text-2xl font-bold text-[#0f172a]">
-                  {Math.round(comp.user_percentile * 100)}%
+                  {Math.round(comp.user_percentile)}%
                 </p>
               </div>
             )}
