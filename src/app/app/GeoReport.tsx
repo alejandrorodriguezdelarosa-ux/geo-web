@@ -1,4 +1,5 @@
 "use client"
+import { useState } from "react"
 
 type Issue = { severity: string; area: string; msg: string; fix: string }
 export type GeoAudit = {
@@ -52,7 +53,39 @@ const SUB_LABEL: Record<string, string> = {
   authority: "Autoridad", visibility: "Visibilidad",
 }
 
-export default function GeoReport({ data }: { data: GeoAudit }) {
+export type FixInput = {
+  mode: "text" | "url"
+  text?: string
+  url?: string
+  title?: string
+  niche?: string
+}
+
+export default function GeoReport({ data, input }: { data: GeoAudit; input: FixInput }) {
+  const [fixLoading, setFixLoading] = useState<string | null>(null)
+  const [fixError, setFixError] = useState<string | null>(null)
+  const [fixResult, setFixResult] = useState<{ fix_type: string; format: string; content: string } | null>(null)
+
+  async function runFix(fixType: string) {
+    setFixError(null)
+    setFixResult(null)
+    setFixLoading(fixType)
+    try {
+      const res = await fetch("/api/auditor/fix", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fix_type: fixType, ...input }),
+      })
+      const d = await res.json()
+      if (!res.ok) { setFixError(d.error || "Error al generar"); return }
+      setFixResult(d)
+    } catch {
+      setFixError("Error de conexión")
+    } finally {
+      setFixLoading(null)
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-5 rounded-xl border border-[#e2e8f0] bg-white p-6">
@@ -155,6 +188,36 @@ export default function GeoReport({ data }: { data: GeoAudit }) {
             </div>
           ))}
         </div>
+      </div>
+
+      <div className="rounded-xl border border-[#e2e8f0] bg-white p-5">
+        <h3 className="mb-1 text-base font-semibold text-[#0f172a]">Arreglos asistidos (IA)</h3>
+        <p className="mb-3 text-xs text-[#64748b]">Genera contenido listo para pegar. Cada botón hace una llamada al modelo.</p>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => runFix("answer_intro")} disabled={!!fixLoading}
+            className="rounded-md border border-[#e2e8f0] px-3 py-1.5 text-sm font-medium text-[#475569] hover:border-[#EC1E63] hover:text-[#EC1E63] disabled:opacity-60">
+            {fixLoading === "answer_intro" ? "Generando…" : "Generar respuesta inicial"}
+          </button>
+          <button type="button" onClick={() => runFix("schema_jsonld")} disabled={!!fixLoading}
+            className="rounded-md border border-[#e2e8f0] px-3 py-1.5 text-sm font-medium text-[#475569] hover:border-[#EC1E63] hover:text-[#EC1E63] disabled:opacity-60">
+            {fixLoading === "schema_jsonld" ? "Generando…" : "Generar JSON-LD (Schema)"}
+          </button>
+          <button type="button" onClick={() => runFix("faq")} disabled={!!fixLoading}
+            className="rounded-md border border-[#e2e8f0] px-3 py-1.5 text-sm font-medium text-[#475569] hover:border-[#EC1E63] hover:text-[#EC1E63] disabled:opacity-60">
+            {fixLoading === "faq" ? "Generando…" : "Generar FAQ"}
+          </button>
+        </div>
+        {fixError && <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{fixError}</p>}
+        {fixResult && (
+          <div className="mt-4">
+            <textarea readOnly value={fixResult.content} rows={10}
+              className="w-full rounded-md border border-[#cbd5e1] bg-[#f8fafc] p-3 font-mono text-xs text-[#0f172a]" />
+            <button type="button" onClick={() => navigator.clipboard?.writeText(fixResult.content)}
+              className="mt-2 rounded-md bg-[#0f172a] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1e293b]">
+              Copiar
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
