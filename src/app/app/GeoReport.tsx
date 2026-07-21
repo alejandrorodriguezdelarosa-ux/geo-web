@@ -16,6 +16,15 @@ export type GeoAudit = {
     score: number
     issues: Issue[]
   }
+  authority: null | {
+    applicable: boolean
+    author: { found: boolean; name: string | null; source: string | null }
+    dates: { published: string | null; modified: string | null; age_days: number | null; recency: string; source: string | null }
+    sources: { external_domains: number }
+    schema: { present: string[]; recommended_missing: string[] }
+    score: number
+    issues: Issue[]
+  }
   passages: {
     passages: { text: string; word_count: number; score: number; position_ratio: number; optimal_length: boolean }[]
     passage_count: number
@@ -104,6 +113,26 @@ export default function GeoReport({ data }: { data: GeoAudit }) {
           <ul className="flex flex-col gap-1 text-sm text-[#475569]">
             <li>Renderizado dependiente de JavaScript: {data.accessibility.rendering.js_dependent_risk ? "riesgo (los crawlers de IA no ejecutan JS)" : "no detectado"}</li>
             <li>/llms.txt: {data.accessibility.llms_txt_present ? "presente" : "ausente"}</li>
+          </ul>
+        </div>
+      )}
+
+      {data.authority && (
+        <div className="rounded-xl border border-[#e2e8f0] bg-white p-5">
+          <h3 className="mb-3 text-base font-semibold text-[#0f172a]">Autoridad, frescura y Schema</h3>
+          <ul className="flex flex-col gap-1 text-sm text-[#475569]">
+            <li>Autor: {data.authority.author.found ? data.authority.author.name : "no identificado"}</li>
+            <li>
+              Fecha: {data.authority.dates.modified || data.authority.dates.published || "sin fecha"}
+              {" — "}
+              {data.authority.dates.recency}
+              {data.authority.dates.age_days != null ? ` (~${data.authority.dates.age_days} días)` : ""}
+            </li>
+            <li>Enlaces a fuentes externas: {data.authority.sources.external_domains}</li>
+            <li>Schema presente: {data.authority.schema.present.length ? data.authority.schema.present.join(", ") : "ninguno"}</li>
+            {data.authority.schema.recommended_missing.length > 0 && (
+              <li>Recomendado añadir: {data.authority.schema.recommended_missing.join(", ")}</li>
+            )}
           </ul>
         </div>
       )}
