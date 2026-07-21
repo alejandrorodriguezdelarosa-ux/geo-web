@@ -1,4 +1,5 @@
 import { auth, signOut } from "@/auth"
+import AppNav from "./AppNav"
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
@@ -38,7 +39,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-3xl px-4 py-8">{children}</main>
+      <main className="mx-auto max-w-3xl px-4 py-8">
+        <AppNav />
+        {children}
+      </main>
     </div>
   )
 }

@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
 
 type QuestionsResult = {
   questions: { question: string; prob: number }[]
@@ -131,13 +130,6 @@ export default function AuditorTool() {
 
   return (
     <div className="flex flex-col gap-8">
-      <Link
-        href="/app"
-        className="text-sm font-medium text-[#EC1E63] hover:underline"
-      >
-        ← Volver al dashboard
-      </Link>
-
       <section className="rounded-xl border border-[#e2e8f0] bg-white p-6 shadow-sm">
         <h2 className="mb-1 text-lg font-semibold tracking-tight text-[#0f172a]">
           Auditor GEO

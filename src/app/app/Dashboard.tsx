@@ -110,42 +110,6 @@ export default function Dashboard({ initialJobs }: { initialJobs: Job[] }) {
 
   return (
     <div className="flex flex-col gap-8">
-      {/* Tools nav */}
-      <nav className="flex flex-wrap gap-2">
-        <span className="rounded-full border border-[#EC1E63] bg-white px-3 py-1 text-xs font-medium text-[#EC1E63]">
-          Enriquecimiento Shopify
-        </span>
-        <Link
-          href="/app/generador"
-          className="rounded-full border border-[#e2e8f0] bg-white px-3 py-1 text-xs font-medium text-[#475569] hover:border-[#EC1E63] hover:text-[#EC1E63]"
-        >
-          Generador Schema.org por URL →
-        </Link>
-        <Link
-          href="/app/crawl"
-          className="rounded-full border border-[#e2e8f0] bg-white px-3 py-1 text-xs font-medium text-[#475569] hover:border-[#EC1E63] hover:text-[#EC1E63]"
-        >
-          Crawling multipágina →
-        </Link>
-        <Link
-          href="/app/wordpress"
-          className="rounded-full border border-[#e2e8f0] bg-white px-3 py-1 text-xs font-medium text-[#475569] hover:border-[#EC1E63] hover:text-[#EC1E63]"
-        >
-          WordPress →
-        </Link>
-        <Link
-          href="/app/shopify"
-          className="rounded-full border border-[#e2e8f0] bg-white px-3 py-1 text-xs font-medium text-[#475569] hover:border-[#EC1E63] hover:text-[#EC1E63]"
-        >
-          Shopify OAuth →
-        </Link>
-        <Link
-          href="/app/auditor"
-          className="rounded-full border border-[#e2e8f0] bg-white px-3 py-1 text-xs font-medium text-[#475569] hover:border-[#EC1E63] hover:text-[#EC1E63]"
-        >
-          Auditor GEO →
-        </Link>
-      </nav>
 
       {/* New job form */}
       <section className="rounded-xl border border-[#e2e8f0] bg-white p-6 shadow-sm">
