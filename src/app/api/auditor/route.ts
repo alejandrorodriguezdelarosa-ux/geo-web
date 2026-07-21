@@ -78,11 +78,15 @@ export async function POST(req: NextRequest) {
   }
 
   if (!res.ok) {
-    const text = await res.text().catch(() => "")
-    return NextResponse.json(
-      { error: "El motor devolvió un error", details: text.slice(0, 300) },
-      { status: 502 }
-    )
+    const raw = await res.text().catch(() => "")
+    let detail = raw
+    try { detail = JSON.parse(raw).detail ?? raw } catch {}
+    const low = (detail || "").toLowerCase()
+    let msg = detail || "El motor devolvió un error"
+    if (low.includes("descargar la url") || low.includes("403") || low.includes("no se pudo extraer")) {
+      msg = "No se pudo leer la página (bloquea el acceso automático o no es accesible). Prueba pegando el contenido en modo Texto."
+    }
+    return NextResponse.json({ error: msg, details: (detail || "").slice(0, 300) }, { status: res.status === 400 ? 400 : 502 })
   }
 
   const data = await res.json()
