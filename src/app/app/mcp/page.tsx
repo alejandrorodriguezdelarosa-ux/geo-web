@@ -14,6 +14,9 @@ export default function McpPage() {
   const [data, setData] = useState<TokenData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [confirming, setConfirming] = useState(false)
+  const [regenerating, setRegenerating] = useState(false)
+  const [regenerated, setRegenerated] = useState(false)
 
   useEffect(() => {
     fetch("/api/mcp/token")
@@ -27,6 +30,26 @@ export default function McpPage() {
     navigator.clipboard?.writeText(data.command)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  async function regenerate() {
+    setRegenerating(true)
+    try {
+      const r = await fetch("/api/mcp/token", { method: "POST" })
+      const j = await r.json()
+      if (r.ok) {
+        setData(j as TokenData)
+        setRegenerated(true)
+        setError(null)
+      } else {
+        setError(j.error || "Error al regenerar el token")
+      }
+    } catch {
+      setError("Error de conexión")
+    } finally {
+      setRegenerating(false)
+      setConfirming(false)
+    }
   }
 
   return (
@@ -53,6 +76,46 @@ export default function McpPage() {
             <p className="text-xs text-[#94a3b8]">
               Este token es personal y secreto: no lo compartas. Cualquiera con él puede usar el auditor en tu nombre.
             </p>
+            {regenerated && (
+              <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                Token regenerado: el anterior ya no funciona. Si lo tenías instalado en Claude Code, ejecuta
+                primero <code className="font-mono">claude mcp remove geo-optimoia</code> y vuelve a pegar el
+                comando de arriba.
+              </p>
+            )}
+            {!confirming ? (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setConfirming(true)}
+                  className="rounded-md border border-[#cbd5e1] px-3 py-1.5 text-xs font-semibold text-[#475569] hover:bg-[#f8fafc]"
+                >
+                  Regenerar token
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2">
+                <span className="text-xs text-red-700">
+                  El token actual dejará de funcionar al instante y tendrás que reinstalar el comando en Claude Code.
+                </span>
+                <button
+                  type="button"
+                  onClick={regenerate}
+                  disabled={regenerating}
+                  className="rounded-md bg-red-600 px-3 py-1 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+                >
+                  {regenerating ? "Regenerando…" : "Sí, regenerar"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirming(false)}
+                  disabled={regenerating}
+                  className="rounded-md border border-[#cbd5e1] px-3 py-1 text-xs font-semibold text-[#475569] hover:bg-white"
+                >
+                  Cancelar
+                </button>
+              </div>
+            )}
           </div>
         )}
       </section>
