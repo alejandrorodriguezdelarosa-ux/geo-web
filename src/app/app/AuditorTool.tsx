@@ -30,6 +30,15 @@ type CompetitorResult = {
   tavily_available: boolean
   tavily_warning?: string | null
   elapsed_seconds: number
+  product_category?: string | null
+}
+
+type QuestionMeasure = {
+  probability: number
+  conclusion: string
+  strengths: string[]
+  improvements: { titulo: string; por_que: string; como: string }[]
+  prompt: string
 }
 
 const NICHES = [
@@ -62,9 +71,14 @@ export default function AuditorTool() {
   const [compLoading, setCompLoading] = useState(false)
   const [compError, setCompError] = useState<string | null>(null)
   const [comp, setComp] = useState<CompetitorResult | null>(null)
+  const [manualComp, setManualComp] = useState("")
   const [geoLoading, setGeoLoading] = useState(false)
   const [geoError, setGeoError] = useState<string | null>(null)
   const [geo, setGeo] = useState<GeoAudit | null>(null)
+  const [question, setQuestion] = useState("")
+  const [qLoading, setQLoading] = useState(false)
+  const [qError, setQError] = useState<string | null>(null)
+  const [qResult, setQResult] = useState<QuestionMeasure | null>(null)
 
   async function analyze() {
     setError(null)
@@ -94,6 +108,15 @@ export default function AuditorTool() {
       }
 
       setResult(data as QuestionsResult)
+      if (mode === "url" && url) {
+        try {
+          const rs = await fetch(`/api/auditor/competitor-set?url=${encodeURIComponent(url)}`)
+          if (rs.ok) {
+            const j = await rs.json()
+            if (Array.isArray(j.competitors)) setManualComp(j.competitors.join("\n"))
+          }
+        } catch {}
+      }
     } finally {
       setLoading(false)
     }
@@ -105,6 +128,20 @@ export default function AuditorTool() {
     setComp(null)
     setCompLoading(true)
 
+    const compUrls = manualComp
+      .split(/[\n,]+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0)
+    if (mode === "url" && url) {
+      try {
+        await fetch("/api/auditor/competitor-set", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url, competitors: compUrls }),
+        })
+      } catch {}
+    }
+
     try {
       const res = await fetch("/api/auditor/competitors", {
         method: "POST",
@@ -115,6 +152,7 @@ export default function AuditorTool() {
           url: mode === "url" ? url : undefined,
           title: title || undefined,
           niche: niche || undefined,
+          manual_competitor_urls: compUrls,
         }),
       })
 
@@ -154,6 +192,28 @@ export default function AuditorTool() {
     } finally {
       setGeoLoading(false)
     }
+  }
+
+  async function askQuestion() {
+    if (question.trim().length < 5) return
+    setQError(null); setQResult(null); setQLoading(true)
+    try {
+      const res = await fetch("/api/auditor/question", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode,
+          text: mode === "text" ? text : undefined,
+          url: mode === "url" ? url : undefined,
+          title: title || undefined,
+          niche: niche || undefined,
+          prompt: question.trim(),
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setQError(data.error || "Error al medir la pregunta"); return }
+      setQResult(data as QuestionMeasure)
+    } catch { setQError("Error de conexión") } finally { setQLoading(false) }
   }
 
   const canAnalyze =
@@ -307,12 +367,23 @@ export default function AuditorTool() {
               <h3 className="text-base font-semibold text-[#0f172a]">
                 Análisis de preguntas
               </h3>
+            </div>
+            <div className="rounded-lg border border-[#e2e8f0] bg-[#f8fafc] p-4">
+              <p className="mb-1 text-sm font-semibold text-[#0f172a]">Tus competidores para esta URL</p>
+              <p className="mb-3 text-xs text-[#64748b]">Pon las webs con las que quieres compararte (una URL por línea). Se guardan para esta URL y se recargan la próxima vez que la analices.</p>
+              <textarea
+                value={manualComp}
+                onChange={(e) => setManualComp(e.target.value)}
+                rows={5}
+                placeholder={"https://competidor1.com\nhttps://competidor2.com"}
+                className="w-full rounded-md border border-[#cbd5e1] bg-white p-2 text-sm outline-none focus:border-[#EC1E63] focus:ring-2 focus:ring-[#EC1E63]/20"
+              />
               <button
                 onClick={compare}
                 disabled={compLoading}
-                className="rounded-md border border-[#e2e8f0] bg-white px-3 py-1.5 text-xs font-medium text-[#475569] hover:bg-[#f8fafc] hover:text-[#0f172a] disabled:opacity-60"
+                className="mt-3 rounded-md bg-[#EC1E63] px-4 py-2 text-sm font-semibold text-white hover:bg-[#c4154f] disabled:opacity-60"
               >
-                {compLoading ? "Comparando…" : "Comparar con competencia"}
+                {compLoading ? "Comparando…" : "Guardar y comparar"}
               </button>
             </div>
 
@@ -433,10 +504,10 @@ export default function AuditorTool() {
                   </tr>
                 </thead>
                 <tbody>
-                  {comp.competitors.map((c, i) => (
+                  {comp.competitors.filter((c) => c.status === "ok").map((c, i) => (
                     <tr
                       key={i}
-                      className={c.status !== "ok" ? "bg-[#f8fafc] opacity-60" : ""}
+                      className=""
                     >
                       <td className="px-4 py-2 text-[#0f172a]">
                         {c.domain}
@@ -457,6 +528,11 @@ export default function AuditorTool() {
                 </tbody>
               </table>
             </div>
+            {comp.competitors.filter((c) => c.status !== "ok").length > 0 && (
+              <p className="mt-3 text-xs text-[#94a3b8]">
+                {comp.competitors.filter((c) => c.status !== "ok").length} descartados por no ser relevantes o no accesibles.
+              </p>
+            )}
           </div>
 
           <div className="text-xs text-[#94a3b8]">
@@ -464,7 +540,7 @@ export default function AuditorTool() {
               Tiempo: <span className="font-medium">{comp.elapsed_seconds}s</span>
             </p>
             <p>
-              Preguntas neutrales usadas:{" "}
+              Preguntas usadas:{" "}
               <span className="font-medium">{comp.questions_used.length}</span>
             </p>
           </div>
@@ -476,6 +552,64 @@ export default function AuditorTool() {
           {compError}
         </p>
       )}
+
+      <section className="rounded-xl border border-[#e2e8f0] bg-white p-6 shadow-sm">
+        <h3 className="mb-1 text-base font-semibold text-[#0f172a]">Mídelo con tu propia pregunta</h3>
+        <p className="mb-4 text-sm text-[#64748b]">Escribe una pregunta real de usuario y mide cómo de preparada está esta página para ser citada por una IA al responderla.</p>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <input
+            type="text"
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder="Ej: ¿qué camisetas de algodón orgánico comprar?"
+            className="flex-1 rounded-md border border-[#cbd5e1] bg-white px-3 py-2 text-sm outline-none focus:border-[#EC1E63] focus:ring-2 focus:ring-[#EC1E63]/20"
+          />
+          <button
+            type="button"
+            onClick={askQuestion}
+            disabled={qLoading || question.trim().length < 5 || (mode === "text" ? text.length < 50 : url.length === 0)}
+            className="rounded-md bg-[#EC1E63] px-4 py-2 text-sm font-semibold text-white hover:bg-[#c4154f] disabled:opacity-60"
+          >
+            {qLoading ? "Midiendo…" : "Medir"}
+          </button>
+        </div>
+        {qError && <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{qError}</p>}
+        {qResult && (
+          <div className="mt-5 flex flex-col gap-4">
+            <div className="flex items-center gap-4">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-[#EC1E63]">{Math.round(qResult.probability * 100)}%</div>
+                <p className="text-xs font-medium text-[#64748b]">Probabilidad de ser citada</p>
+              </div>
+              <p className="flex-1 text-sm text-[#334155]">{qResult.conclusion}</p>
+            </div>
+            {qResult.strengths.length > 0 && (
+              <div>
+                <h4 className="mb-2 text-sm font-semibold text-[#0f172a]">Qué juega a favor</h4>
+                <ul className="flex flex-col gap-1">
+                  {qResult.strengths.map((s, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-[#475569]"><span className="mt-0.5 text-green-600">✓</span><span>{s}</span></li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {qResult.improvements.length > 0 && (
+              <div>
+                <h4 className="mb-2 text-sm font-semibold text-[#0f172a]">Qué mejorar y cómo</h4>
+                <ul className="flex flex-col gap-3">
+                  {qResult.improvements.map((m, i) => (
+                    <li key={i} className="rounded-lg border border-[#e2e8f0] p-3">
+                      <p className="text-sm font-medium text-[#0f172a]">{m.titulo}</p>
+                      {m.por_que && <p className="mt-1 text-sm text-[#475569]"><span className="font-medium text-[#334155]">Por qué:</span> {m.por_que}</p>}
+                      {m.como && <p className="mt-1 text-sm text-[#475569]"><span className="font-medium text-[#334155]">Cómo:</span> {m.como}</p>}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
 
       <section className="flex flex-col gap-4">
         <div>

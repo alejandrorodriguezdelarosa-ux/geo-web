@@ -12,6 +12,7 @@ model User {
   passwordHash        String
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
+  mcpToken            String?              @unique
   jobs                Job[]
   shopifyConnections  ShopifyConnection[]
 }
@@ -54,4 +55,28 @@ model ShopifyConnection {
 
   @@unique([userId, shopDomain])
   @@index([shopDomain])
+}
+
+model CompetitorSet {
+  id           String   @id @default(cuid())
+  userId       String
+  url          String
+  competitors  String[]
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, url])
+  @@index([userId])
+}
+
+model SiteAudit {
+  id           String   @id @default(cuid())
+  userId       String
+  url          String
+  domain       String
+  score        Int
+  pagesAudited Int
+  result       Json
+  createdAt    DateTime @default(now())
+
+  @@index([userId, domain, createdAt])
 }

@@ -5,11 +5,13 @@ import { usePathname } from "next/navigation"
 
 const ITEMS = [
   { href: "/app", label: "Auditor GEO" },
+  { href: "/app/sitio", label: "Auditoría de sitio" },
   { href: "/app/enriquecimiento", label: "Enriquecimiento Shopify" },
   { href: "/app/generador", label: "Generador Schema.org por URL" },
   { href: "/app/crawl", label: "Crawling multipágina" },
   { href: "/app/wordpress", label: "WordPress" },
   { href: "/app/shopify", label: "Shopify OAuth" },
+  { href: "/app/mcp", label: "Conectar con Claude Code" },
 ]
 
 export default function AppNav() {

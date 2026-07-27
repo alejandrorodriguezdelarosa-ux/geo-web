@@ -8,6 +8,8 @@ const bodySchema = z.object({
   url: z.string().url().optional(),
   title: z.string().optional(),
   niche: z.string().optional(),
+  positioning: z.string().optional(),
+  manual_competitor_urls: z.array(z.string()).optional(),
 })
 
 export async function POST(req: NextRequest) {
@@ -32,7 +34,7 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const { mode, text, url, title, niche } = parsed.data
+  const { mode, text, url, title, niche, positioning, manual_competitor_urls } = parsed.data
 
   if (mode === "text" && (!text || text.length < 50)) {
     return NextResponse.json(
@@ -55,8 +57,8 @@ export async function POST(req: NextRequest) {
 
   const requestBody =
     mode === "text"
-      ? { text, title: title || "", niche: niche || undefined }
-      : { url, title: title || "", niche: niche || undefined }
+      ? { text, title: title || "", niche: niche || undefined, positioning: positioning || undefined, manual_competitor_urls: manual_competitor_urls && manual_competitor_urls.length ? manual_competitor_urls : undefined }
+      : { url, title: title || "", niche: niche || undefined, positioning: positioning || undefined, manual_competitor_urls: manual_competitor_urls && manual_competitor_urls.length ? manual_competitor_urls : undefined }
 
   let res: Response
   try {

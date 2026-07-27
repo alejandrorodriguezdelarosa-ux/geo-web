@@ -54,3 +54,6 @@ next-env.d.ts
 
 # Workflows n8n (contienen credenciales)
 n8n/
+
+# Backups de edicion en servidor
+*.bak-*
