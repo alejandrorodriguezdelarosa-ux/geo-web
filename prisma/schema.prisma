@@ -60,17 +60,20 @@ model ShopifyConnection {
 model CompetitorSet {
   id           String   @id @default(cuid())
   userId       String
+  companyId    String?
   url          String
   competitors  String[]
   updatedAt    DateTime @updatedAt
 
   @@unique([userId, url])
   @@index([userId])
+  @@index([companyId])
 }
 
 model SiteAudit {
   id           String   @id @default(cuid())
   userId       String
+  companyId    String?
   url          String
   domain       String
   score        Int
@@ -79,4 +82,37 @@ model SiteAudit {
   createdAt    DateTime @default(now())
 
   @@index([userId, domain, createdAt])
+  @@index([companyId, createdAt])
+}
+
+// Ficha de cliente: agrupa el trabajo (auditorias, competidores, actividad) de una
+// empresa concreta, para quien gestiona varias.
+model Company {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  website   String?
+  sector    String?
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+// Diario de actividad: que se ejecuto, sobre que y con que resultado. Alimenta el
+// historial y la ficha de cada empresa.
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String
+  companyId String?
+  kind      String
+  target    String
+  score     Int?
+  detail    Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([companyId, createdAt])
 }

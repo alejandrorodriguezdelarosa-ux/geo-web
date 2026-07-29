@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
+import { registrarActividad } from "@/lib/actividad"
 
 export const maxDuration = 900
 
 const bodySchema = z.object({
   url: z.string().min(4),
   max_pages: z.number().int().min(1).max(100).optional(),
+  companyId: z.string().optional(),
 })
 
 export async function POST(req: NextRequest) {
@@ -53,6 +55,7 @@ export async function POST(req: NextRequest) {
       await prisma.siteAudit.create({
         data: {
           userId: session.user.id,
+          companyId: parsed.data.companyId ?? null,
           url: data.base_url ?? parsed.data.url,
           domain: data.domain ?? "",
           score: data.site_score ?? 0,
@@ -62,6 +65,17 @@ export async function POST(req: NextRequest) {
       })
     } catch {}
   }
+  await registrarActividad({
+    userId: session.user.id,
+    companyId: parsed.data.companyId ?? null,
+    kind: "audit_site",
+    target: data.domain ?? parsed.data.url,
+    score: typeof data?.site_score === "number" ? data.site_score : null,
+    detail: {
+      paginas: data?.audited_count ?? null,
+      provisional: esProvisional,
+    },
+  })
   return NextResponse.json(data)
 }
 

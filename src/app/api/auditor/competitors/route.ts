@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { auth } from "@/auth"
+import { registrarActividad } from "@/lib/actividad"
 
 const bodySchema = z.object({
   mode: z.enum(["text", "url"]),
+  companyId: z.string().optional(),
   text: z.string().optional(),
   url: z.string().url().optional(),
   title: z.string().optional(),
@@ -85,5 +87,16 @@ export async function POST(req: NextRequest) {
   }
 
   const data = await res.json()
+  const medidos = Array.isArray(data?.competitors)
+    ? data.competitors.filter((c: { status?: string }) => c?.status === "ok").length
+    : 0
+  await registrarActividad({
+    userId: session.user.id,
+    companyId: parsed.data.companyId ?? null,
+    kind: "competitors",
+    target: parsed.data.url ?? (parsed.data.title || "texto pegado"),
+    score: typeof data?.user_percentile === "number" ? Math.round(data.user_percentile) : null,
+    detail: { competidores: medidos },
+  })
   return NextResponse.json(data)
 }

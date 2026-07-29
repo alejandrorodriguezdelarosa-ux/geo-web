@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { auth } from "@/auth"
+import { registrarActividad } from "@/lib/actividad"
 
 const bodySchema = z.object({
   mode: z.enum(["text", "url"]),
+  companyId: z.string().optional(),
   text: z.string().optional(),
   url: z.string().url().optional(),
   title: z.string().optional(),
@@ -58,5 +60,15 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({ error: msg, details: (detail || "").slice(0, 300) }, { status: res.status === 400 ? 400 : 502 })
   }
-  return NextResponse.json(await res.json())
+  const data = await res.json()
+  // El diario se escribe despues de responder bien: solo se apunta trabajo real.
+  await registrarActividad({
+    userId: session.user.id,
+    companyId: parsed.data.companyId ?? null,
+    kind: "audit_page",
+    target: parsed.data.url ?? (parsed.data.title || "texto pegado"),
+    score: typeof data?.geo_score === "number" ? data.geo_score : null,
+    detail: { page_type: data?.page_type ?? null, score_method: data?.score_method ?? null },
+  })
+  return NextResponse.json(data)
 }

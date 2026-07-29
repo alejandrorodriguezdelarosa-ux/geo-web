@@ -40,6 +40,13 @@ const GRUPOS: Grupo[] = [
     ],
   },
   {
+    titulo: "Tu trabajo",
+    items: [
+      { href: "/app/empresas", label: "Empresas", hint: "Fichas de cliente y su trabajo" },
+      { href: "/app/historial", label: "Historial", hint: "Tu actividad y las novedades" },
+    ],
+  },
+  {
     titulo: "Tu cuenta",
     items: [
       { href: "/app/cuenta", label: "Mi cuenta", hint: "Datos y Claude Code" },
