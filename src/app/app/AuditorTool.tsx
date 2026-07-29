@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import GeoReport, { type GeoAudit } from "./GeoReport"
 import Link from "next/link"
 
@@ -79,45 +79,97 @@ export default function AuditorTool() {
   const [qLoading, setQLoading] = useState(false)
   const [qError, setQError] = useState<string | null>(null)
   const [qResult, setQResult] = useState<QuestionMeasure | null>(null)
+  // El analisis es una sola accion con varios pasos: se cuenta por donde va.
+  const [paso, setPaso] = useState<string | null>(null)
+  const [empresas, setEmpresas] = useState<{ id: string; name: string }[]>([])
+  const [empresaId, setEmpresaId] = useState("")
 
-  async function analyze() {
-    setError(null)
-    setResult(null)
-    setComp(null)
-    setCompError(null)
-    setGeo(null)
+  useEffect(() => {
+    fetch("/api/empresas")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (j?.empresas) setEmpresas(j.empresas) })
+      .catch(() => {})
+  }, [])
+
+  async function analizarTodo() {
+    setError(null); setResult(null); setComp(null); setCompError(null)
+    setGeo(null); setGeoError(null); setQResult(null)
     setLoading(true)
 
+    const cuerpoBase = {
+      mode,
+      text: mode === "text" ? text : undefined,
+      url: mode === "url" ? url : undefined,
+      title: title || undefined,
+      niche: niche || undefined,
+      companyId: empresaId || undefined,
+    }
+
     try {
-      const res = await fetch("/api/auditor", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mode,
-          text: mode === "text" ? text : undefined,
-          url: mode === "url" ? url : undefined,
-          title: title || undefined,
-          niche: niche || undefined,
-        }),
-      })
-
-      const data = await res.json()
-      if (!res.ok) {
-        setError(data.error ?? "Error al analizar")
-        return
-      }
-
-      setResult(data as QuestionsResult)
+      // Competidores guardados de esta URL: deciden si al final hay comparativa.
+      let compUrls: string[] = []
       if (mode === "url" && url) {
+        setPaso("Recuperando tus competidores…")
         try {
           const rs = await fetch(`/api/auditor/competitor-set?url=${encodeURIComponent(url)}`)
           if (rs.ok) {
             const j = await rs.json()
-            if (Array.isArray(j.competitors)) setManualComp(j.competitors.join("\n"))
+            if (Array.isArray(j.competitors)) {
+              compUrls = j.competitors
+              setManualComp(j.competitors.join("\n"))
+            }
           }
         } catch {}
       }
+
+      setPaso("Analizando la página…")
+      try {
+        const res = await fetch("/api/auditor", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(cuerpoBase),
+        })
+        const data = await res.json()
+        if (res.ok) setResult(data as QuestionsResult)
+        else setError(data.error ?? "Error al analizar")
+      } catch {
+        setError("Error de conexión al analizar la página")
+      }
+
+      setPaso("Preparando el informe…")
+      try {
+        const res = await fetch("/api/auditor/geo", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(cuerpoBase),
+        })
+        const data = await res.json()
+        if (res.ok) setGeo(data as GeoAudit)
+        else setGeoError(data.error || "Error al generar el informe")
+      } catch {
+        setGeoError("Error de conexión al generar el informe")
+      }
+
+      if (compUrls.length > 0) {
+        setPaso("Comparando con tu competencia…")
+        setCompLoading(true)
+        try {
+          const res = await fetch("/api/auditor/competitors", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...cuerpoBase, manual_competitor_urls: compUrls }),
+          })
+          const data = await res.json()
+          if (res.ok) setComp(data as CompetitorResult)
+          else setCompError(data.error ?? "Error al comparar con competencia")
+        } catch {
+          setCompError("Error de conexión al comparar")
+        } finally {
+          setCompLoading(false)
+        }
+      }
     } finally {
+      setPaso(null)
       setLoading(false)
     }
   }
@@ -153,6 +205,7 @@ export default function AuditorTool() {
           title: title || undefined,
           niche: niche || undefined,
           manual_competitor_urls: compUrls,
+          companyId: empresaId || undefined,
         }),
       })
 
@@ -274,7 +327,7 @@ export default function AuditorTool() {
         <form
           onSubmit={(e) => {
             e.preventDefault()
-            if (canAnalyze) analyze()
+            if (canAnalyze) analizarTodo()
           }}
           className="flex flex-col gap-4"
         >
@@ -350,13 +403,38 @@ export default function AuditorTool() {
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={!canAnalyze}
-            className="self-start rounded-md bg-[#EC1E63] px-4 py-2 text-sm font-semibold text-white hover:bg-[#c4154f] disabled:opacity-60"
-          >
-            {loading ? "Analizando…" : "Analizar"}
-          </button>
+          {empresas.length > 0 && (
+            <label className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-[#475569]">Empresa (opcional)</span>
+              <select
+                value={empresaId}
+                onChange={(e) => setEmpresaId(e.target.value)}
+                className="w-full max-w-xs rounded-md border border-[#cbd5e1] bg-white px-3 py-2 text-sm outline-none focus:border-[#EC1E63]"
+              >
+                <option value="">Sin asignar</option>
+                {empresas.map((e) => (
+                  <option key={e.id} value={e.id}>{e.name}</option>
+                ))}
+              </select>
+              <span className="text-xs text-[#94a3b8]">
+                Si la eliges, este análisis queda en la ficha de esa empresa.
+              </span>
+            </label>
+          )}
+
+          <div className="flex flex-col gap-2">
+            <button
+              type="submit"
+              disabled={!canAnalyze}
+              className="self-start rounded-md bg-[#EC1E63] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#c4154f] disabled:opacity-60"
+            >
+              {loading ? (paso ?? "Analizando…") : "Analizar"}
+            </button>
+            <p className="text-xs text-[#94a3b8]">
+              Un solo análisis: preguntas, informe completo y, si tienes competidores guardados para
+              esta URL, la comparativa con ellos.
+            </p>
+          </div>
         </form>
       </section>
 
@@ -612,16 +690,20 @@ export default function AuditorTool() {
       </section>
 
       <section className="flex flex-col gap-4">
-        <div>
-          <button
-            type="button"
-            onClick={geoAudit}
-            disabled={geoLoading || (mode === "text" ? text.length < 50 : url.length === 0)}
-            className="rounded-md bg-[#0f172a] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1e293b] disabled:opacity-60"
-          >
-            {geoLoading ? "Generando informe GEO…" : "Generar Informe GEO"}
-          </button>
-        </div>
+        {/* El informe llega con el analisis; este boton solo hace falta para
+            reintentarlo si esa parte fallo. */}
+        {!geo && (result || geoError) && (
+          <div>
+            <button
+              type="button"
+              onClick={geoAudit}
+              disabled={geoLoading || (mode === "text" ? text.length < 50 : url.length === 0)}
+              className="rounded-md bg-[#0f172a] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1e293b] disabled:opacity-60"
+            >
+              {geoLoading ? "Generando informe…" : "Reintentar el informe"}
+            </button>
+          </div>
+        )}
         {geoError && (
           <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{geoError}</p>
         )}
