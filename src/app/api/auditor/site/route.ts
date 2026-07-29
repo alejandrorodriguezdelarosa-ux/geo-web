@@ -44,18 +44,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: detail || "El motor devolvió un error" }, { status: res.status === 400 ? 400 : 502 })
   }
   const data = await res.json()
-  try {
-    await prisma.siteAudit.create({
-      data: {
-        userId: session.user.id,
-        url: data.base_url ?? parsed.data.url,
-        domain: data.domain ?? "",
-        score: data.site_score ?? 0,
-        pagesAudited: data.audited_count ?? 0,
-        result: data,
-      },
-    })
-  } catch {}
+  // Una auditoría medida con preguntas de repuesto (el motor no pudo usar el modelo)
+  // da una nota provisional que no es comparable con las anteriores: se devuelve para
+  // que el usuario la vea, pero NO entra en el histórico para no falsear la evolución.
+  const esProvisional = data.score_method === "fallback"
+  if (!esProvisional) {
+    try {
+      await prisma.siteAudit.create({
+        data: {
+          userId: session.user.id,
+          url: data.base_url ?? parsed.data.url,
+          domain: data.domain ?? "",
+          score: data.site_score ?? 0,
+          pagesAudited: data.audited_count ?? 0,
+          result: data,
+        },
+      })
+    } catch {}
+  }
   return NextResponse.json(data)
 }
 

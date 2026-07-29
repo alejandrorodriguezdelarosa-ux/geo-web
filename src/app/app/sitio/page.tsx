@@ -19,6 +19,8 @@ type SiteAudit = {
   pages: { url: string; title: string; page_type: string | null; score: number }[]
   errors: { url: string; error: string }[]
   elapsed_seconds: number
+  score_method?: string | null
+  fallback_pages?: number | null
 }
 
 type HistoryRow = { id: string; createdAt: string; score: number; pagesAudited: number }
@@ -117,6 +119,19 @@ export default function SitioPage() {
 
       {data && (
         <>
+          {data.score_method === "fallback" && (
+            <section className="rounded-xl border border-amber-300 bg-amber-50 p-5">
+              <h3 className="mb-1 text-base font-semibold text-amber-900">Puntuación provisional</h3>
+              <p className="text-sm leading-relaxed text-amber-800">
+                No se pudieron generar las preguntas de prueba habituales (falló un servicio externo),
+                así que {data.fallback_pages ?? 0} página{(data.fallback_pages ?? 0) === 1 ? "" : "s"} se
+                han medido con preguntas de repuesto sobre su tema. La nota sirve de orientación, pero no
+                es comparable con auditorías anteriores, así que <strong>esta no se ha guardado en el
+                histórico</strong>. Vuelve a lanzarla más tarde para tener una medición comparable.
+              </p>
+            </section>
+          )}
+
           <section className="flex items-center gap-5 rounded-xl border border-[#e2e8f0] bg-white p-6 shadow-sm">
             <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full border-4"
                  style={{ borderColor: scoreColor(data.site_score) }}>
