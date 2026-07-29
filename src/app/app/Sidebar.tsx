@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
+import { createPortal } from "react-dom"
 
 type Item = { href: string; label: string; hint: string }
 type Grupo = { titulo: string; items: Item[] }
@@ -11,9 +12,15 @@ type Grupo = { titulo: string; items: Item[] }
 // tecnologia que hay detras.
 const GRUPOS: Grupo[] = [
   {
+    titulo: "Inicio",
+    items: [
+      { href: "/app", label: "Panel de inicio", hint: "Tu actividad y accesos" },
+    ],
+  },
+  {
     titulo: "Analizar",
     items: [
-      { href: "/app", label: "Auditor GEO", hint: "Una página o un texto" },
+      { href: "/app/auditor", label: "Auditor GEO", hint: "Una página o un texto" },
       { href: "/app/sitio", label: "Auditoría de sitio", hint: "Todo el dominio, con histórico" },
     ],
   },
@@ -47,6 +54,15 @@ function esActivo(pathname: string, href: string): boolean {
 export default function Sidebar({ email }: { email?: string | null }) {
   const pathname = usePathname()
   const [abierto, setAbierto] = useState(false)
+  // El panel se monta en el body con un portal. El boton vive en la cabecera, y esa
+  // cabecera lleva desenfoque: un backdrop-filter crea un contexto de posicionamiento
+  // nuevo, asi que un panel fijo dentro de ella tomaba la altura de la cabecera en vez
+  // de la pantalla completa (aparecia recortado, con el correo encima del menu).
+  const [montado, setMontado] = useState(false)
+
+  useEffect(() => {
+    setMontado(true)
+  }, [])
 
   // Al navegar se cierra: en un panel superpuesto, dejarlo abierto tapa el contenido.
   useEffect(() => {
@@ -81,22 +97,24 @@ export default function Sidebar({ email }: { email?: string | null }) {
         <span className="hidden sm:inline">{seccionActual}</span>
       </button>
 
-      {abierto && (
-        <div
-          className="fixed inset-0 z-40 bg-[#0f172a]/40 backdrop-blur-[1px]"
-          onClick={() => setAbierto(false)}
-          aria-hidden="true"
-        />
-      )}
+      {montado && createPortal(
+        <>
+          {abierto && (
+            <div
+              className="fixed inset-0 z-40 bg-[#0f172a]/40"
+              onClick={() => setAbierto(false)}
+              aria-hidden="true"
+            />
+          )}
 
-      <aside
-        className={`fixed left-0 top-0 z-50 flex h-full w-72 flex-col border-r border-[#e2e8f0] bg-white transition-transform duration-200 ${
-          abierto ? "translate-x-0" : "-translate-x-full"
-        }`}
-        aria-hidden={!abierto}
-      >
+          <aside
+            className={`fixed left-0 top-0 z-50 flex h-screen w-72 flex-col border-r border-[#e2e8f0] bg-white shadow-xl transition-transform duration-200 ${
+              abierto ? "translate-x-0" : "-translate-x-full"
+            }`}
+            aria-hidden={!abierto}
+          >
         <div className="flex items-center justify-between border-b border-[#e2e8f0] px-5 py-4">
-          <div className="flex items-center gap-2">
+          <Link href="/app" className="flex items-center gap-2">
             <svg viewBox="0 0 64 64" className="h-7 w-7 shrink-0" xmlns="http://www.w3.org/2000/svg">
               <rect width="64" height="64" rx="14" fill="#1F2937" />
               <g fill="#EC1E63">
@@ -108,7 +126,7 @@ export default function Sidebar({ email }: { email?: string | null }) {
               <span className="text-sm font-bold text-[#0f172a]">OptimoIA</span>
               <span className="text-[11px] text-[#64748b]">Citabilidad en LLMs</span>
             </div>
-          </div>
+          </Link>
           <button
             type="button"
             onClick={() => setAbierto(false)}
@@ -156,14 +174,17 @@ export default function Sidebar({ email }: { email?: string | null }) {
           ))}
         </nav>
 
-        {email && (
-          <div className="border-t border-[#e2e8f0] px-5 py-3">
-            <p className="truncate text-xs text-[#64748b]" title={email}>
-              {email}
-            </p>
-          </div>
-        )}
-      </aside>
+            {email && (
+              <div className="border-t border-[#e2e8f0] px-5 py-3">
+                <p className="truncate text-xs text-[#64748b]" title={email}>
+                  {email}
+                </p>
+              </div>
+            )}
+          </aside>
+        </>,
+        document.body,
+      )}
     </>
   )
 }
