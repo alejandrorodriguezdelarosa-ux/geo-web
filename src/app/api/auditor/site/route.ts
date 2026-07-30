@@ -10,6 +10,7 @@ const bodySchema = z.object({
   url: z.string().min(4),
   max_pages: z.number().int().min(1).max(100).optional(),
   companyId: z.string().optional(),
+  fuente: z.enum(["vivo", "archivo"]).optional(),
 })
 
 export async function POST(req: NextRequest) {
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
     res = await fetch(`${geoApiBase}/api/site-audit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: parsed.data.url, max_pages: parsed.data.max_pages ?? 50 }),
+      body: JSON.stringify({ url: parsed.data.url, max_pages: parsed.data.max_pages ?? 50, fuente: parsed.data.fuente ?? "vivo" }),
       signal: AbortSignal.timeout(880_000),
     })
   } catch (err) {
@@ -49,7 +50,10 @@ export async function POST(req: NextRequest) {
   // Una auditoría medida con preguntas de repuesto (el motor no pudo usar el modelo)
   // da una nota provisional que no es comparable con las anteriores: se devuelve para
   // que el usuario la vea, pero NO entra en el histórico para no falsear la evolución.
-  const esProvisional = data.score_method === "fallback"
+  // Tambien se excluye cuando result_type existe y no es "sitio", ya que una muestra
+  // parcial (de archivo) no es la nota del sitio, y meterla en el historico falsearia
+  // la evolucion.
+  const esProvisional = data.score_method === "fallback" || (data.result_type && data.result_type !== "sitio")
   if (!esProvisional) {
     try {
       await prisma.siteAudit.create({

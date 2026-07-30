@@ -21,6 +21,27 @@ type SiteAudit = {
   elapsed_seconds: number
   score_method?: string | null
   fallback_pages?: number | null
+  fuente?: "vivo" | "archivo" | null
+  archive_from?: string | null
+  archive_to?: string | null
+  locale?: string | null
+  result_type?: "sitio" | "muestra" | "pagina" | null
+  coverage_reasons?: string[] | null
+  funnel?: Record<string, number> | null
+  rate_limited_pages?: number | null
+  scorer_version?: string | null
+}
+
+type ArchiveInfo = {
+  dominio: string
+  disponibles: number
+  desde: string | null
+  hasta: string | null
+  ventana_dias: number | null
+  por_tipo: Record<string, number>
+  locale: string | null
+  suficientes: boolean
+  aviso: string | null
 }
 
 type HistoryRow = { id: string; createdAt: string; score: number; pagesAudited: number }
@@ -47,6 +68,8 @@ export default function SitioPage() {
   const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<SiteAudit | null>(null)
   const [history, setHistory] = useState<HistoryRow[]>([])
+  const [archivo, setArchivo] = useState<ArchiveInfo | null>(null)
+  const [buscandoArchivo, setBuscandoArchivo] = useState(false)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -63,9 +86,10 @@ export default function SitioPage() {
     } catch {}
   }
 
-  async function run() {
+  async function run(fuente: "vivo" | "archivo" = "vivo") {
     setError(null)
     setData(null)
+    setArchivo(null)
     setLoading(true)
     setElapsed(0)
     timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000)
@@ -73,12 +97,28 @@ export default function SitioPage() {
       const res = await fetch("/api/auditor/site", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, fuente }),
       })
       const j = await res.json()
       if (!res.ok) { setError(j.error || "Error al auditar el sitio"); return }
       setData(j as SiteAudit)
       if ((j as SiteAudit).domain) loadHistory((j as SiteAudit).domain)
+      // Si el sitio nos freno o la cobertura no dio para una nota de sitio, mirar que
+      // hay archivado: es la unica via que no le pide nada a su servidor.
+      const r = j as SiteAudit
+      const merecePreguntar = (r.rate_limited_pages ?? 0) > 0 || (!!r.result_type && r.result_type !== "sitio")
+      if (fuente === "vivo" && merecePreguntar) {
+        setBuscandoArchivo(true)
+        try {
+          const ar = await fetch("/api/auditor/archive", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url }),
+          })
+          if (ar.ok) setArchivo((await ar.json()) as ArchiveInfo)
+        } catch {}
+        setBuscandoArchivo(false)
+      }
     } catch {
       setError("Error de conexión (la auditoría puede tardar varios minutos; si se corta, reduce el número de páginas)")
     } finally {
@@ -104,7 +144,7 @@ export default function SitioPage() {
           />
           <button
             type="button"
-            onClick={run}
+            onClick={() => run()}
             disabled={loading || url.trim().length < 4}
             className="rounded-md bg-[#EC1E63] px-4 py-2 text-sm font-semibold text-white hover:bg-[#c4154f] disabled:opacity-60"
           >
@@ -116,6 +156,38 @@ export default function SitioPage() {
         )}
         {error && <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
       </section>
+
+      {buscandoArchivo && (
+        <section className="rounded-xl border border-[#e2e8f0] bg-white p-5">
+          <p className="text-sm text-[#64748b]">Comprobando si hay páginas archivadas de este sitio...</p>
+        </section>
+      )}
+
+      {archivo && archivo.disponibles > 0 && (
+        <section className="rounded-xl border border-amber-300 bg-amber-50 p-5">
+          <h3 className="mb-1 text-base font-semibold text-amber-900">Auditar con páginas archivadas</h3>
+          <p className="text-sm leading-relaxed text-amber-800">
+            {archivo.desde && archivo.hasta && archivo.desde !== archivo.hasta
+              ? "Hay " + archivo.disponibles + " páginas de este sitio archivadas por Common Crawl, capturadas entre el " + archivo.desde + " y el " + archivo.hasta + ". Auditarlas no le pide nada a su servidor, pero reflejan cómo estaba el sitio entonces, no cómo está hoy."
+              : "Hay " + archivo.disponibles + " páginas de este sitio archivadas por Common Crawl, capturadas el " + (archivo.desde ?? "una fecha que el archivo no precisa") + ". Auditarlas no le pide nada a su servidor, pero reflejan cómo estaba el sitio entonces, no cómo está hoy."}
+          </p>
+          {archivo.aviso && <p className="mt-2 text-sm text-amber-800">{archivo.aviso}</p>}
+          <button
+            type="button"
+            onClick={() => run("archivo")}
+            disabled={loading}
+            className="mt-3 rounded-md bg-[#EC1E63] px-4 py-2 text-sm font-semibold text-white hover:bg-[#c4154f] disabled:opacity-60"
+          >
+            Auditar las páginas archivadas
+          </button>
+        </section>
+      )}
+
+      {archivo && archivo.disponibles === 0 && archivo.aviso && (
+        <section className="rounded-xl border border-[#e2e8f0] bg-white p-5">
+          <p className="text-sm text-[#64748b]">{archivo.aviso}</p>
+        </section>
+      )}
 
       {data && (
         <>
@@ -140,7 +212,8 @@ export default function SitioPage() {
             <div>
               <h3 className="text-lg font-semibold text-[#0f172a]">GEO Score del sitio</h3>
               <p className="text-sm text-[#64748b]">
-                {data.domain} — auditadas {data.audited_count} de {data.discovered_total} páginas ({data.source === "sitemap" ? "vía sitemap" : data.source === "links" ? "vía enlaces de la portada" : "sin sitemap"}) en {Math.round(data.elapsed_seconds)}s.
+                {data.domain} — auditadas {data.audited_count} de {data.discovered_total} páginas ({data.fuente === "archivo" ? "archivadas por Common Crawl" : data.source === "sitemap" ? "vía sitemap" : data.source === "links" ? "vía enlaces de la portada" : "sin sitemap"}) en {Math.round(data.elapsed_seconds)}s.
+                {data.fuente === "archivo" && data.archive_from ? " Capturadas entre el " + data.archive_from + " y el " + data.archive_to + ": reflejan cómo estaba el sitio entonces, no cómo está hoy." : ""}
               </p>
               <p className="mt-1 text-sm font-medium text-[#0f172a]">
                 Preparación: <span className="text-[#EC1E63]">{data.verdict.label}</span> — {data.verdict.sentence}
