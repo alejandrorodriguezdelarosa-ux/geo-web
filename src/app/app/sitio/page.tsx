@@ -57,6 +57,11 @@ function scoreColor(s: number): string {
   return "#dc2626"
 }
 
+function tituloScore(resultType: string | null | undefined, leidas: number): string {
+  if (!resultType || resultType === "sitio") return "GEO Score del sitio"
+  return `GEO Score de ${leidas} página${leidas === 1 ? "" : "s"}`
+}
+
 const IMPACT_COLOR: Record<string, string> = {
   Alto: "bg-red-100 text-red-800", Medio: "bg-amber-100 text-amber-800", Bajo: "bg-gray-100 text-gray-700",
 }
@@ -210,7 +215,7 @@ export default function SitioPage() {
               <span className="text-3xl font-bold" style={{ color: scoreColor(data.site_score) }}>{data.site_score}</span>
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-[#0f172a]">GEO Score del sitio</h3>
+              <h3 className="text-lg font-semibold text-[#0f172a]">{tituloScore(data.result_type, data.audited_count)}</h3>
               <p className="text-sm text-[#64748b]">
                 {data.domain} — auditadas {data.audited_count} de {data.discovered_total} páginas ({data.fuente === "archivo" ? "archivadas por Common Crawl" : data.source === "sitemap" ? "vía sitemap" : data.source === "links" ? "vía enlaces de la portada" : "sin sitemap"}) en {Math.round(data.elapsed_seconds)}s.
                 {data.fuente === "archivo" && data.archive_from ? " Capturadas entre el " + data.archive_from + " y el " + data.archive_to + ": reflejan cómo estaba el sitio entonces, no cómo está hoy." : ""}
@@ -220,6 +225,21 @@ export default function SitioPage() {
               </p>
             </div>
           </section>
+
+          {data.result_type && data.result_type !== "sitio" && (data.coverage_reasons?.length ?? 0) > 0 && (
+            <section className="rounded-xl border border-amber-300 bg-amber-50 p-5">
+              <h3 className="mb-1 text-base font-semibold text-amber-900">Por qué esta no es la nota del sitio</h3>
+              <p className="mb-3 text-sm leading-relaxed text-amber-800">
+                Para puntuar un sitio entero hacen falta al menos 3 tipos de página distintos con 3 ejemplos
+                de cada uno, y que no falle más de 1 de cada 5 páginas seleccionadas. Aquí no se cumplió:
+              </p>
+              <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-amber-800">
+                {data.coverage_reasons!.map((motivo, i) => (
+                  <li key={i}>{motivo}</li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           <section className="rounded-xl border border-[#e2e8f0] bg-white p-5">
             <h3 className="mb-2 text-base font-semibold text-[#0f172a]">Resumen para tu equipo</h3>
