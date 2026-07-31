@@ -3,6 +3,7 @@ import { z } from "zod"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { registrarActividad } from "@/lib/actividad"
+import { buscarFirma } from "@/lib/firmas"
 
 export const maxDuration = 900
 
@@ -28,12 +29,32 @@ export async function POST(req: NextRequest) {
   if (!geoApiBase) {
     return NextResponse.json({ error: "Servicio no configurado" }, { status: 503 })
   }
+  // Si este usuario tiene firma de rastreo para ese dominio, se adjunta. Va por la red
+  // interna, nunca vuelve al navegador, y el motor solo la usa mientras dura la peticion.
+  const firma = await buscarFirma(session.user.id, parsed.data.url)
+  if (firma.estado === "caducada") {
+    return NextResponse.json(
+      { error: `La firma de rastreo de ${firma.origen} caducó el ${firma.expiraISO.slice(0, 10)}. Pide una nueva en el panel de Shopify de la tienda y actualízala en la ficha de la empresa.` },
+      { status: 400 },
+    )
+  }
+  if (firma.estado === "ilegible") {
+    return NextResponse.json(
+      { error: `La firma guardada de ${firma.origen} no se puede descifrar. Bórrala y vuelve a darla de alta.` },
+      { status: 500 },
+    )
+  }
   let res: Response
   try {
     res = await fetch(`${geoApiBase}/api/site-audit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: parsed.data.url, max_pages: parsed.data.max_pages ?? 50, fuente: parsed.data.fuente ?? "vivo" }),
+      body: JSON.stringify({
+        url: parsed.data.url,
+        max_pages: parsed.data.max_pages ?? 50,
+        fuente: parsed.data.fuente ?? "vivo",
+        ...(firma.estado === "vigente" ? { firma: firma.cabeceras, firma_expira: firma.expiraISO } : {}),
+      }),
       signal: AbortSignal.timeout(880_000),
     })
   } catch (err) {

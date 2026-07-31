@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { ETIQUETA_ACTIVIDAD, type TipoActividad } from "@/lib/actividad"
+import FirmasEmpresa from "../FirmasEmpresa"
 
 function colorNota(n: number): string {
   if (n >= 70) return "#16a34a"
@@ -34,7 +35,7 @@ export default async function EmpresaPage({ params }: { params: Promise<{ id: st
   // Se filtra por userId: nadie puede abrir la ficha de otra cuenta cambiando el id.
   if (!empresa) notFound()
 
-  const [auditorias, competidores, actividad] = await Promise.all([
+  const [auditorias, competidores, actividad, firmas] = await Promise.all([
     prisma.siteAudit.findMany({
       where: { userId, companyId: id },
       orderBy: { createdAt: "desc" },
@@ -52,6 +53,11 @@ export default async function EmpresaPage({ params }: { params: Promise<{ id: st
       orderBy: { createdAt: "desc" },
       take: 20,
       select: { id: true, kind: true, target: true, score: true, createdAt: true },
+    }),
+    prisma.crawlSignature.findMany({
+      where: { userId, companyId: id },
+      orderBy: { origin: "asc" },
+      select: { id: true, origin: true, expiresAt: true },
     }),
   ])
 
@@ -74,6 +80,17 @@ export default async function EmpresaPage({ params }: { params: Promise<{ id: st
           <p className="whitespace-pre-line text-sm text-[#334155]">{empresa.notes}</p>
         </section>
       )}
+
+      <FirmasEmpresa
+        empresaId={empresa.id}
+        website={empresa.website}
+        firmas={firmas.map((f) => ({
+          id: f.id,
+          origin: f.origin,
+          expiresAt: f.expiresAt.toISOString(),
+          diasRestantes: Math.ceil((f.expiresAt.getTime() - Date.now()) / 86400000),
+        }))}
+      />
 
       <section className="rounded-xl border border-[#e2e8f0] bg-white p-6 shadow-sm">
         <h2 className="mb-4 text-base font-semibold text-[#0f172a]">Auditorías de sitio</h2>

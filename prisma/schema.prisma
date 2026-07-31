@@ -101,6 +101,27 @@ model Company {
   @@index([userId])
 }
 
+// Firmas Web Bot Auth por dominio: las tres cabeceras que el comerciante genera en su
+// admin de Shopify (Online Store > Preferences > Crawler access). Son credenciales
+// portadoras (quien las tiene rastrea como nosotros), así que se guardan cifradas con
+// AES-256-GCM y no se devuelven nunca al navegador. Caducan a los 3 meses y no se
+// renuevan: por eso expiresAt es obligatorio y la interfaz avisa antes de tiempo.
+model CrawlSignature {
+  id             String   @id @default(cuid())
+  userId         String
+  companyId      String?
+  origin         String
+  signatureInput String   @db.Text
+  signature      String   @db.Text
+  signatureAgent String   @db.Text
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, origin])
+  @@index([companyId])
+}
+
 // Diario de actividad: que se ejecuto, sobre que y con que resultado. Alimenta el
 // historial y la ficha de cada empresa.
 model ActivityLog {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { auth } from "@/auth"
 import { registrarActividad } from "@/lib/actividad"
+import { buscarFirma } from "@/lib/firmas"
 
 const bodySchema = z.object({
   mode: z.enum(["text", "url"]),
@@ -33,9 +34,33 @@ export async function POST(req: NextRequest) {
   const geoApiBase = process.env.GEO_API_BASE
   if (!geoApiBase) return NextResponse.json({ error: "Servicio no configurado" }, { status: 503 })
 
+  // La firma solo tiene sentido cuando se descarga una pagina: en modo texto no hay
+  // peticion a ningun sitio.
+  let firma: Awaited<ReturnType<typeof buscarFirma>> = { estado: "sin_firma" }
+  if (mode === "url" && url) {
+    firma = await buscarFirma(session.user.id, url)
+    if (firma.estado === "caducada") {
+      return NextResponse.json(
+        { error: `La firma de rastreo de ${firma.origen} caducó el ${firma.expiraISO.slice(0, 10)}. Pide una nueva en el panel de Shopify de la tienda y actualízala en la ficha de la empresa.` },
+        { status: 400 },
+      )
+    }
+    if (firma.estado === "ilegible") {
+      return NextResponse.json(
+        { error: `La firma guardada de ${firma.origen} no se puede descifrar. Bórrala y vuelve a darla de alta.` },
+        { status: 500 },
+      )
+    }
+  }
+
   const requestBody = mode === "text"
     ? { text, title: title || "", niche: niche || undefined }
-    : { url, title: title || "", niche: niche || undefined }
+    : {
+        url,
+        title: title || "",
+        niche: niche || undefined,
+        ...(firma.estado === "vigente" ? { firma: firma.cabeceras, firma_expira: firma.expiraISO } : {}),
+      }
 
   let res: Response
   try {
